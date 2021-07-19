@@ -18,9 +18,9 @@ class User():
     def __init__(self, username):
         self.username = username
 
-    def __init__(self, username, age_gender, agestamp):
+    def __init__(self, username, age_gender, unix_time):
         self.username = username
-        self.agestamp = agestamp
+        self.agestamp = unix_utc_toString(unix_time)
         self.format_age_gender(age_gender)
         self.initial_save(10)
 
@@ -177,6 +177,10 @@ def sql_exec_postdata(cursor, post):
         print("duplicate post entry?")
 
 
+
+
+
+
 # This code below here may go into another file at some point
 
 def collect(reddit, maxcount):
@@ -186,15 +190,8 @@ def collect(reddit, maxcount):
         title = submission.title.lower()
         search = re.search("(i|my|i'm|i am|me) +\(([1-9][0-9][a-z])\)", title)
         if search:
-            data.append(User(submission.author.name, search.group(2), unix_utc_toString(submission.created_utc)))
+            data.append(User(submission.author.name, search.group(2), submission.created_utc))
     return data
-
-
-
-
-
-
-
 
 def test1_1():
     reddit = login()
