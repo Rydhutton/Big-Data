@@ -18,7 +18,13 @@ class User():
     def __init__(self, username):
         self.username = username
 
-    age = gender = location = dob = None
+    def __init__(self, username, age_gender, agestamp):
+        self.username = username
+        self.agestamp = agestamp
+        self.format_age_gender(age_gender)
+        self.initial_save(10)
+
+    gender = age = agestamp = location = dob = None
 
     def get_redditor(self):
         return login().redditor(self.username)
@@ -35,12 +41,32 @@ class User():
             self.gender = "Unknown"
             print("Error")
 
-    def initial_save(self):
-        pass
-        # save to userdata db
-        # then save all posts to db
-        # then save all comments to db
-        # no checking needed as first creation
+    def initial_save(self, max):
+        # saves user and all post/comment data to sql database when created
+        # through init with age_gender stamp
+        redditor = self.get_redditor()
+        db = opendb()
+        cur = db.cursor()
+        sql_exec_userdata(cur, self)
+        for comment in redditor.comments.new(limit=max):
+            sql_exec_commentdata(cur, comment)
+        for post in redditor.submissions.new(limit=max):
+            sql_exec_postdata(cur, post)
+        db.commit()
+        db.close()
+
+    def load_data_from_db(self):
+        cur = opendb().cursor()
+        cur.execute("SELECT gender,age,agestamp FROM userdata WHERE username=%s",self.username)
+        val = cur.fetchone()
+        if val is not None:
+            self.gender = val
+        val = cur.fetchone()
+        if val is not None:
+            self.age = val
+        val = cur.fetchone()
+        if val is not None:
+            self.agestamp = val
 
     def save_user_to_db(self):
         # IF EXISTS THEN UPDATE INFO
@@ -114,88 +140,54 @@ def login():
 
 def unix_utc_toString(unix_string):
     return datetime.utcfromtimestamp(unix_string).strftime('%Y-%m-%d %H:%M:%S')
-    
+
+def sql_exec_userdata(cursor, user):
+    try:
+        sql = ("INSERT INTO userdata "
+                "(username, gender, age, agestamp) "
+                "VALUES (%s, %s, %s, %s)")
+        val = (user.username, user.gender, user.age, user.agestamp)
+        #print(user.username, user.gender, user.age, user.agestamp)
+        cursor.execute(sql, val)
+    except:
+        print("duplicate user entry")
+
+def sql_exec_commentdata(cursor, comment):
+    #(username VARCHAR(30) NOT NULL, cid VARCHAR(15) NOT NULL PRIMARY KEY, comment TEXT, date DATETIME, FOREIGN KEY(username) REFERENCES userdata(username))
+    try:
+        sql = ("INSERT INTO usercommentdata "
+                "(username, cid, comment, date) "
+                "VALUES (%s, %s, %s, %s)")
+        val = (comment.author.name, comment.id, comment.body, unix_utc_toString(comment.created_utc))
+        #print(comment.author.name, comment.id, comment.body, unix_utc_toString(comment.created_utc))
+        cursor.execute(sql, val)
+    except:
+        print("duplicate comment entry ?")
+
+def sql_exec_postdata(cursor, post):
+    #(username VARCHAR(30) NOT NULL, pid VARCHAR(15) NOT NULL PRIMARY KEY, title TEXT, selftext TEXT, date DATETIME, FOREIGN KEY(username) REFERENCES userdata(username))
+    try:
+        sql = ("INSERT INTO userpostdata "
+                "(username, pid, title, selftext, date) "
+                "VALUES (%s, %s, %s, %s, %s)")
+        val = (post.author.name, post.id, post.title, post.selftext, unix_utc_toString(post.created_utc))
+        #print(post.author.name, post.id, post.title, post.selftext, unix_utc_toString(post.created_utc))
+        cursor.execute(sql, val)
+    except:
+        print("duplicate post entry?")
+
+
+# This code below here may go into another file at some point
+
 def collect(reddit, maxcount):
-    # TO DO: Implement threading to save to DB whenever a new unique user is found
-    count = 0
     data = []
     subreddit = reddit.subreddit("Relationships")
-    for submission in subreddit.stream.submissions():
+    for submission in subreddit.new(limit=maxcount):
         title = submission.title.lower()
         search = re.search("(i|my|i'm|i am|me) +\(([1-9][0-9][a-z])\)", title)
         if search:
-            #print(submission.author)
-            data.append((submission.author,search.group(2),unix_utc_toString(submission.created_utc),submission))
-            #print(search.group(2))
-            count += 1
-        if count >= maxcount:
-            break
+            data.append(User(submission.author.name, search.group(2), unix_utc_toString(submission.created_utc)))
     return data
-
-def sql_exec_userdata(cursor, username, gender = None, age = None, agestamp = None):
-    sql = ("INSERT INTO userdata "
-            "(username, gender, age, agestamp) "
-            "VALUES (%s, %s, %s, %s)")
-    val = (username, gender, age, agestamp)
-    cursor.execute(sql, val)
-
-def sql_exec_commentdata(cursor, comment):
-    # first time an account is added to the db it should scan through and add all
-    # comments and posts without doing a duplicate checkup
-    # then afterwards do a query for comment id before updating to avoid dupes
-    #(username VARCHAR(30) NOT NULL FOREIGN KEY, cid INT NOT NULL, comment TEXT, date DATETIME)
-    sql = ("INSERT INTO usercommentdata "
-            "(username, cid, comment, date) "
-            "VALUES (%s, %s, %s, %s)")
-    val = (comment.author.name, comment.id, comment.body, unix_utc_toString(comment.created_utc))
-    cursor.execute(sql, val)
-
-def sql_exec_postdata(cursor, post):
-    #(username VARCHAR(30) NOT NULL FOREIGN KEY, pid INT NOT NULL, title TEXT, selftext TEXT, date DATETIME)
-    sql = ("INSERT INTO userpostdata "
-            "(username, pid, title, selfttext, date) "
-            "VALUES (%s, %s, %s, %s, %s)")
-    val = (post.author.name, post.id, post.title, post.selftext, unix_utc_toString(post.created_utc))
-    cursor.execute(sql, val)
-
-
-
-
-
-
-def save_userdata(data):
-    # username VARCHAR(30) NOT NULL, uid INT AUTO_INCREMENT PRIMARY KEY, gender VARCHAR(15), age INT, dob DATE, location VARCHAR(100)
-    db = opendb()
-    cur = db.cursor()
-
-    def format_to_sql(account):
-        redditor = account[0]
-        username = redditor.name
-        age = str(account[1][0]) + str(account[1][1])
-        gender = "Unknown"
-        if account[1][2] == "m":
-            gender = "Male"
-        elif account[1][2] == "f":
-            gender = "Female"
-        else:
-            print("Error")
-        agestamp = account[2]
-        sql_exec_userdata(cur, username, gender, age, agestamp)
-
-    if type(data) is list:
-        for account in data:
-            format_to_sql(account)
-    elif type(data) is tuple:
-        format_to_sql(data)
-    else:
-        print("error: unknown data type" + type(data))
-
-    db.commit()
-    db.close()
-
-
-
-
 
 
 
@@ -226,13 +218,15 @@ def test1_2():
     resetdb()
 
 def test2_1():
+    resetdb()
     reddit = login()
     db = opendb()
     cur = db.cursor()
-    data = collect(reddit, 10)
-    save_userdata(data)
-    for user in data:
-        name = user[0].name
+    data = collect(reddit, 100)
+    cur.execute("SELECT * FROM userdata")
+    vals = cur.fetchall()
+    for val in vals:
+        print(val)
 
 def test2_0():
     me = User("DesolateWolf")
@@ -241,4 +235,4 @@ def test2_0():
     print("end")
 
 if __name__ == "__main__":
-    test2_0()
+    test2_1()
