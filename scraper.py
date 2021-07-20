@@ -2,7 +2,7 @@ import praw
 import re
 from datetime import datetime
 import mysql.connector
-#from threading import Thread
+from threading import Thread
 
 #Need to implement Try-Catch once confirmed working
 
@@ -18,11 +18,11 @@ class User():
     def __init__(self, username):
         self.username = username
 
-    def __init__(self, username, age_gender, agestamp):
+    def __init__(self, username, age_gender, unix_time):
         self.username = username
-        self.agestamp = agestamp
+        self.agestamp = unix_utc_toString(unix_time)
         self.format_age_gender(age_gender)
-        self.initial_save(10)
+        self.initial_save()
 
     gender = age = agestamp = location = dob = None
 
@@ -37,21 +37,13 @@ class User():
             self.gender = "Male"
         elif string[2] == "f":
             self.gender = "Female"
-        else:
-            self.gender = "Unknown"
-            print("Error")
 
-    def initial_save(self, max):
-        # saves user and all post/comment data to sql database when created
+    def initial_save(self):
+        # saves user to sql database when created
         # through init with age_gender stamp
-        redditor = self.get_redditor()
         db = opendb()
         cur = db.cursor()
         sql_exec_userdata(cur, self)
-        for comment in redditor.comments.new(limit=max):
-            sql_exec_commentdata(cur, comment)
-        for post in redditor.submissions.new(limit=max):
-            sql_exec_postdata(cur, post)
         db.commit()
         db.close()
 
@@ -72,20 +64,33 @@ class User():
         # IF EXISTS THEN UPDATE INFO
         pass
 
-    def save_comments_to_db(self):
-        # IF EXISTS DONT SAVE
-        pass
+    def save_comments_to_db(self, cur):
+        redditor = self.get_redditor()
+        for comment in redditor.comments.new(limit=max):
+            sql_exec_commentdata(cur, comment)
 
-    def save_posts_to_db(self):
-        # IF EXISTS DONT SAVE
-        pass
+    def save_posts_to_db(self, cur):
+        redditor = self.get_redditor()
+        for post in redditor.submissions.new(limit=max):
+            sql_exec_postdata(cur, post)
 
     def delete_from_db(self):
         pass
         # Going to need to delete posts and comments first then delete
         # the userdata
-        
 
+    def check_for_existing(self, username=None, cid=None, pid=None):
+        if username is not None:
+            pass
+        elif cid is not None:
+            pass
+        elif pid is not None:
+            pass
+        else:
+            print("Error None type given where username, cid, or pid must not be None")
+            return None
+
+        
 
 def initdb():
     db = mysql.connector.connect(
@@ -150,7 +155,7 @@ def sql_exec_userdata(cursor, user):
         #print(user.username, user.gender, user.age, user.agestamp)
         cursor.execute(sql, val)
     except:
-        print("duplicate user entry")
+        print("Error inserting userdata\nKey: " + user.username)
 
 def sql_exec_commentdata(cursor, comment):
     #(username VARCHAR(30) NOT NULL, cid VARCHAR(15) NOT NULL PRIMARY KEY, comment TEXT, date DATETIME, FOREIGN KEY(username) REFERENCES userdata(username))
@@ -162,7 +167,7 @@ def sql_exec_commentdata(cursor, comment):
         #print(comment.author.name, comment.id, comment.body, unix_utc_toString(comment.created_utc))
         cursor.execute(sql, val)
     except:
-        print("duplicate comment entry ?")
+        print("Error inserting commentdata\nKey: " + comment.id)
 
 def sql_exec_postdata(cursor, post):
     #(username VARCHAR(30) NOT NULL, pid VARCHAR(15) NOT NULL PRIMARY KEY, title TEXT, selftext TEXT, date DATETIME, FOREIGN KEY(username) REFERENCES userdata(username))
@@ -174,27 +179,25 @@ def sql_exec_postdata(cursor, post):
         #print(post.author.name, post.id, post.title, post.selftext, unix_utc_toString(post.created_utc))
         cursor.execute(sql, val)
     except:
-        print("duplicate post entry?")
+        print("Error inserting postdata\nKey: " + post.id)
+
 
 
 # This code below here may go into another file at some point
 
 def collect(reddit, maxcount):
-    data = []
+    #data = []
     subreddit = reddit.subreddit("Relationships")
     for submission in subreddit.new(limit=maxcount):
         title = submission.title.lower()
-        search = re.search("(i|my|i'm|i am|me) +\(([1-9][0-9][a-z])\)", title)
+        search = re.search("(i|my|i'm|i am|me) +\(([1-9][0-9][mf])\)", title)
         if search:
-            data.append(User(submission.author.name, search.group(2), unix_utc_toString(submission.created_utc)))
-    return data
+            #data.append(User(submission.author.name, search.group(2), submission.created_utc))
+            User(submission.author.name, search.group(2), submission.created_utc)
+    #return data
 
-
-
-
-
-
-
+def scrape():
+    collect(login(), 100)
 
 def test1_1():
     reddit = login()
@@ -234,5 +237,36 @@ def test2_0():
     print(redditor.name)
     print("end")
 
+def test3_0():
+    '''
+    resetdb()
+    scrape()
+    cur = opendb().cursor()
+    cur.execute("SELECT * FROM userdata")
+    x = cur.fetchall
+    for i in x:
+        print(i)
+    cur.execute("SELECT * FROM commentdata")
+    x = cur.fetchall
+    for i in x:
+        print(i)
+    
+    resetdb()
+    r = login()
+    d = collect(r, 1000)
+    '''
+    db = opendb()
+    cur = db.cursor()
+    cur.execute("SELECT * FROM userdata")
+    x = cur.fetchall()
+    for i in x:
+        print(i)
+    cur.execute("SELECT * FROM usercommentdata")
+    x = cur.fetchall()
+    for i in x:
+        print(i)
+
+
 if __name__ == "__main__":
-    test2_1()
+    scrape()
+    test3_0()
