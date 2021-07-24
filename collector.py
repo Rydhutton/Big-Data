@@ -102,11 +102,12 @@ class User():
         
 
 def initdb():
-    pw = input("root password:")
+    pw = input("Admin password:")
     db = mysql.connector.connect(
             host="192.168.1.101",
-            user="root",
+            user="Admin",
             password=pw,
+            auth_plugin='mysql_native_password'
         )
     cur = db.cursor()
     cur.execute("CREATE DATABASE testdata")
@@ -114,11 +115,12 @@ def initdb():
     db.close()
 
 def deletedb():
-    pw = input("root password:")
+    pw = input("Admin password:")
     db = mysql.connector.connect(
         host="192.168.1.101",
-        user="root",
+        user="Admin",
         password=pw,
+        auth_plugin='mysql_native_password'
     )
     cur = db.cursor()
     cur.execute("DROP DATABASE testdata")
@@ -126,22 +128,23 @@ def deletedb():
     db.close()
 
 def opendb():
-    pw = input("password:")
     db = mysql.connector.connect(
         host="192.168.1.101",
         user="Ryan",
-        password=pw,
-        database="testdata"
+        password="password",
+        database="testdata",
+        auth_plugin='mysql_native_password'
     )
     return db
 
-def opendbRoot():
-    pw = input("root password:")
+def opendbAdmin():
+    pw = input("Admin password:")
     db = mysql.connector.connect(
         host="192.168.1.101",
-        user="root",
+        user="Admin",
         password=pw,
-        database="testdata"
+        database="testdata",
+        auth_plugin='mysql_native_password'
     )
     return db
 
@@ -151,7 +154,7 @@ def backupdb():
     pass
 
 def resetdb():
-    db = opendbRoot()
+    db = opendbAdmin()
     cur = db.cursor()
     cur.execute("DROP TABLE IF EXISTS usercommentdata")
     cur.execute("DROP TABLE IF EXISTS userpostdata")
@@ -271,5 +274,4 @@ def test3_0():
 
 
 if __name__ == "__main__":
-    pass
-    #run()
+    run()
