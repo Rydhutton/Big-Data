@@ -102,10 +102,11 @@ class User():
         
 
 def initdb():
+    pw = input("root password:")
     db = mysql.connector.connect(
-            host="localhost",
-            user="Ryan",
-            password="Bl3aK",
+            host="192.168.1.101",
+            user="root",
+            password=pw,
         )
     cur = db.cursor()
     cur.execute("CREATE DATABASE testdata")
@@ -113,10 +114,11 @@ def initdb():
     db.close()
 
 def deletedb():
+    pw = input("root password:")
     db = mysql.connector.connect(
-        host="localhost",
-        user="Ryan",
-        password="Bl3aK",
+        host="192.168.1.101",
+        user="root",
+        password=pw,
     )
     cur = db.cursor()
     cur.execute("DROP DATABASE testdata")
@@ -124,20 +126,32 @@ def deletedb():
     db.close()
 
 def opendb():
+    pw = input("password:")
     db = mysql.connector.connect(
-        host="localhost",
+        host="192.168.1.101",
         user="Ryan",
-        password="Bl3aK",
+        password=pw,
         database="testdata"
     )
     return db
+
+def opendbRoot():
+    pw = input("root password:")
+    db = mysql.connector.connect(
+        host="192.168.1.101",
+        user="root",
+        password=pw,
+        database="testdata"
+    )
+    return db
+
 
 def backupdb():
     #backup sql database to local and remote repo
     pass
 
 def resetdb():
-    db = opendb()
+    db = opendbRoot()
     cur = db.cursor()
     cur.execute("DROP TABLE IF EXISTS usercommentdata")
     cur.execute("DROP TABLE IF EXISTS userpostdata")
@@ -257,4 +271,5 @@ def test3_0():
 
 
 if __name__ == "__main__":
-    run()
+    pass
+    #run()
