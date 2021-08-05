@@ -103,13 +103,9 @@ class User():
         # the userdata
 
     def check_for_existing(self, username=None, cid=None, pid=None):
-
-<<<<<<< Updated upstream
-=======
         booleans = []
         db = opendb()
         cur = db.cursor()
-
         def search(query, target):
             cur.execute(query, (target,))
             d = cur.fetchone()
@@ -118,14 +114,12 @@ class User():
                     if i == target:
                         return True
             else: return False
-
         if username is not None: booleans.append(search("SELECT username FROM userdata WHERE username=%s", username))
         if cid is not None: booleans.append(search("SELECT cid FROM usercommentdata WHERE cid=%s", cid))
         if pid is not None: booleans.append(search("SELECT pid FROM userpostdata WHERE pid=%s", pid))
         return booleans
 
 
->>>>>>> Stashed changes
 def setAdminPassword(pwd):
     ADMIN_PASSWORD = pwd
 
@@ -383,8 +377,6 @@ def test4_0():
             print(acc.username + " is a " + str(acc.age) + " " + acc.gender)
             if Redditor.comment_karma is not None: print("they have " + str(Redditor.comment_karma) + " karma")
 
-<<<<<<< Updated upstream
-=======
 def test3_3():
     u1 = User(username="2KareDogs")
     u2 = User(username="ThisUserDoesNotExist")
@@ -396,7 +388,6 @@ def test3_3():
     val = u2.check_for_existing(username=u2.username)
     print(val)
  
->>>>>>> Stashed changes
 def scp_fix():
     db = opendb()
     cur = db.cursor()
@@ -409,10 +400,4 @@ def scp_fix():
 
 
 if __name__ == "__main__":
-<<<<<<< Updated upstream
-    #reddit = login()
-    #collect(reddit)
-    #cmdline()
-=======
-    test3_3()
->>>>>>> Stashed changes
+    pass
