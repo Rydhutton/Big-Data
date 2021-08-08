@@ -413,7 +413,7 @@ def test4_1():
 # used to test for now
 
 if __name__ == "__main__":
-    test4_1()
+  pass
 
 
 # CAN ONLY BE RUN IN PYTHON 3.10+
