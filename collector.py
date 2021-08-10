@@ -285,9 +285,45 @@ def collect(reddit, limit=None):
                 target.thread_save_to_db()
             if count >= limit:
                 break
+                
+def new_collect(subreddit, limit=None):
+    if limit == None:
+        subreddit = reddit.subreddit("Relationships")
+        for submission in subreddit.stream.submissions():
+            title = submission.title.lower()
+            search = re.search("(i|my|i'm|i am|me) +\(([1-9][0-9][mf])\)", title) # Need to modify the RE to be () or []
+            if search:
+                target = User(submission.author.name, age_gender=search.group(2), unix_time=submission.created_utc)
+                target.save_comments_to_db()
+                target.save_posts_to_db()
+    else:
+        subreddit = reddit.subreddit("Relationships")
+        count = 0
+        for submission in subreddit.stream.submissions():
+            title = submission.title.lower()
+            search = re.search("(i|my|i'm|i am|me) +\(([1-9][0-9][mf])\)", title)
+            if search:
+                count += 1
+                target = User(submission.author.name, age_gender=search.group(2), unix_time=submission.created_utc)
+                print(target.username)
+                target.thread_save_to_db()
+            if count >= limit:
+                break
         
 def prod_run():
-    collect(login(),limit=None)
+    reddit = login()
+    r_relationships = reddit.subreddit("Relationships")
+    r_dating = reddit.subreddit("dating")
+    r_relationship_advice = reddit.subreddit("relationship_advice")
+    #new_collect(subreddit,limit=None)
+    r_relationships_thread = Thread(target=new_collect)
+    r_dating_thread = Thread(target=new_collect)
+    # add others
+    r_relationships_thread.daemon = True
+    r_dating_thread.daemon = True
+    r_dating_thread.start()
+    r_dating_thread.join()
+    # INCOMPLETE PLEASE FINISH
 
 # TESTS
 
