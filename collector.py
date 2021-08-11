@@ -75,6 +75,7 @@ class User():
             if sql_exec_commentdata(cur, comment) == False:
                 miss += 1
                 if miss >= 10: break
+            else: miss = 0
         db.commit()
         db.close()
 
@@ -87,6 +88,7 @@ class User():
             if sql_exec_postdata(cur, post) == False:
                 miss += 1
                 if miss >= 10: break
+            else: miss = 0
         db.commit()
         db.close()
 
@@ -209,20 +211,31 @@ def resetdb():
     db.commit()
     db.close()
 
-def cleandb():
-    # Use to delete any accounts in the database which have been deleted or suspended from reddit
-    pw = input("Admin password: ")
+def importusers():
     db = opendb()
     cur = db.cursor()
     cur.execute("SELECT * FROM userdata")
     dump = cur.fetchall()
-    for line in dump:
+    return dump
+
+def cleandb():
+    # Use to delete any accounts in the database which have been deleted or suspended from reddit
+    pw = input("Admin password: ")
+    accounts = importusers()
+    for line in accounts:
         user = User(username=line[0])
         Redditor = user.get_redditor()
         try:
             _ = Redditor.comment_karma
         except:
             user.delete_from_db(admin_password=pw)
+
+def updatedb():
+    accounts = importusers()
+    for line in accounts:
+        user = User(username=line[0])
+        user.save_comments_to_db()
+        user.save_posts_to_db()
 
 def sql_exec_userdata(cursor, user):
     try:
@@ -263,32 +276,8 @@ def login():
 
 def unix_utc_toString(unix_string):
     return datetime.utcfromtimestamp(unix_string).strftime('%Y-%m-%d %H:%M:%S')
-    
-def collect(reddit, limit=None):
-    if limit == None:
-        subreddit = reddit.subreddit("Relationships")
-        for submission in subreddit.stream.submissions():
-            title = submission.title.lower()
-            search = re.search("(i|my|i'm|i am|me) +\(([1-9][0-9][mf])\)", title)
-            if search:
-                target = User(submission.author.name, age_gender=search.group(2), unix_time=submission.created_utc)
-                target.save_comments_to_db()
-                target.save_posts_to_db()
-    else:
-        subreddit = reddit.subreddit("Relationships")
-        count = 0
-        for submission in subreddit.stream.submissions():
-            title = submission.title.lower()
-            search = re.search("(i|my|i'm|i am|me) +\(([1-9][0-9][mf])\)", title)
-            if search:
-                count += 1
-                target = User(submission.author.name, age_gender=search.group(2), unix_time=submission.created_utc)
-                print(target.username)
-                target.thread_save_to_db()
-            if count >= limit:
-                break
-                
-def new_collect(subreddit, limit=None):
+               
+def collect(subreddit, limit=None):
     if limit == None:
         for submission in subreddit.stream.submissions():
             title = submission.title.lower()
@@ -315,9 +304,9 @@ def prod_run():
     r_relationships = reddit.subreddit("Relationships")
     r_dating = reddit.subreddit("dating")
     r_relationship_advice = reddit.subreddit("relationship_advice")
-    r_relationships_thread = Thread(target=new_collect, args=(r_relationships,))
-    r_dating_thread = Thread(target=new_collect, args=(r_dating,))
-    r_relationship_advice_thread = Thread(target=new_collect, args=(r_relationship_advice,))
+    r_relationships_thread = Thread(target=collect, args=(r_relationships,))
+    r_dating_thread = Thread(target=collect, args=(r_dating,))
+    r_relationship_advice_thread = Thread(target=collect, args=(r_relationship_advice,))
     r_relationships_thread.daemon = True
     r_dating_thread.daemon = True
     r_relationship_advice_thread.daemon = True
