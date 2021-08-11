@@ -3,19 +3,21 @@ import re
 from datetime import datetime
 import mysql.connector
 from time import sleep
-#import threading
 from threading import Thread, active_count as active_thread_count
-
-#Need to implement Try-Catch once confirmed working
 
 #Praw data types and attributes: https://praw.readthedocs.io/en/latest/code_overview/praw_models.html
 #Spacy data types and attributes: https://spacy.io/api
 #MySQL python connector resources: https://dev.mysql.com/doc/connector-python/en/
 #Python Regular Expressions: https://docs.python.org/3/library/re.html
 
-# make data in class object for simplicity sake
+# Make sure you install mysql.connector.python and not mysql.connector or you will have issues authenticating on the SQL server
 
-GLOBAL_IPV4 = "localhost"
+# Requires a MySQL Server Database to run. Once created set SQL_SERVER_IPV4 to your server's address (localhost for local computer)
+# Next create 2 users to serve the database
+# One user named Ryan with insertion priviledges
+# And another user named Admin with DBA permissions
+
+SQL_SERVER_IPV4 = "localhost"
 
 # *************** OBJECT CLASSES ***************
 
@@ -36,8 +38,6 @@ class User():
         return login().redditor(self.username)
     
     def format_age_gender(self, string):
-        # string must be in format DDC
-        # where D is digit and C is char
         self.age = int(str(string[0]) + str(string[1]))
         if string[2] == "m":
             self.gender = "Male"
@@ -45,8 +45,6 @@ class User():
             self.gender = "Female"
 
     def initial_save(self):
-        # saves user to sql database when created
-        # through init with age_gender stamp
         db = opendb()
         cur = db.cursor()
         sql_exec_userdata(cur, self)
@@ -131,12 +129,13 @@ class User():
 # **************** SQL DATABASE FUNCTIONS *****************
 
 def setAdminPassword(pwd):
+    #call this function to save the administrator password during the session
     ADMIN_PASSWORD = pwd
 
 def initdb():
     pw = input("Admin password:")
     db = mysql.connector.connect(
-            host=GLOBAL_IPV4,
+            host=SQL_SERVER_IPV4,
             user="Admin",
             password=pw,
             auth_plugin='mysql_native_password'
@@ -149,7 +148,7 @@ def initdb():
 def deletedb():
     pw = input("Admin password:")
     db = mysql.connector.connect(
-        host=GLOBAL_IPV4,
+        host=SQL_SERVER_IPV4,
         user="Admin",
         password=pw,
         auth_plugin='mysql_native_password'
@@ -161,7 +160,7 @@ def deletedb():
 
 def opendb():
     db = mysql.connector.connect(
-        host=GLOBAL_IPV4,
+        host=SQL_SERVER_IPV4,
         user="Ryan",
         password="password",
         database="testdata",
@@ -170,10 +169,11 @@ def opendb():
     return db
 
 def opendbAdmin(admin_password=None):
+    # opens the SQL server as an administrator
     if admin_password is None:
         pw = input("Admin password:")
         db = mysql.connector.connect(
-            host=GLOBAL_IPV4,
+            host=SQL_SERVER_IPV4,
             user="Admin",
             password=pw,
             database="testdata",
@@ -181,7 +181,7 @@ def opendbAdmin(admin_password=None):
         )
     else:
         db = mysql.connector.connect(
-        host=GLOBAL_IPV4,
+        host=SQL_SERVER_IPV4,
         user="Admin",
         password=admin_password,
         database="testdata",
