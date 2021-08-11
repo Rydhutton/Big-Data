@@ -70,10 +70,11 @@ class User():
         db = opendb()
         cur = db.cursor()
         redditor = self.get_redditor()
-        count = 0
+        miss = 0
         for comment in redditor.comments.new(limit=1000):
-            count += 1
-            sql_exec_commentdata(cur, comment)
+            if sql_exec_commentdata(cur, comment) == False:
+                miss += 1
+                if miss >= 10: break
         db.commit()
         db.close()
 
@@ -81,15 +82,17 @@ class User():
         db = opendb()
         cur = db.cursor()
         redditor = self.get_redditor()
+        miss = 0
         for post in redditor.submissions.new(limit=1000):
-            sql_exec_postdata(cur, post)
+            if sql_exec_postdata(cur, post) == False:
+                miss += 1
+                if miss >= 10: break
         db.commit()
         db.close()
 
     def thread_save_to_db(self):
         commentThread = Thread(target=self.save_comments_to_db)
         postThread = Thread(target=self.save_posts_to_db)
-        # might remove daemon, need for testing now
         commentThread.daemon = True
         postThread.daemon = True
         commentThread.start()
@@ -227,7 +230,8 @@ def sql_exec_userdata(cursor, user):
                 "VALUES (%s, %s, %s, %s)")
         val = (user.username, user.gender, user.age, user.agestamp)
         cursor.execute(sql, val)
-    except: pass
+        return True
+    except: return False
 
 def sql_exec_commentdata(cursor, comment):
     try:
@@ -236,7 +240,8 @@ def sql_exec_commentdata(cursor, comment):
                 "VALUES (%s, %s, %s, %s)")
         val = (comment.author.name, comment.id, comment.body, unix_utc_toString(comment.created_utc))
         cursor.execute(sql, val)
-    except: pass
+        return True
+    except: return False
 
 def sql_exec_postdata(cursor, post):
     try:
@@ -245,7 +250,8 @@ def sql_exec_postdata(cursor, post):
                 "VALUES (%s, %s, %s, %s, %s)")
         val = (post.author.name, post.id, post.title, post.selftext, unix_utc_toString(post.created_utc))
         cursor.execute(sql, val)
-    except: pass
+        return True
+    except: return False
 
 
 #********************** COLLECTOR FUNCTIONS ***********************
@@ -288,7 +294,6 @@ def collect(reddit, limit=None):
                 
 def new_collect(subreddit, limit=None):
     if limit == None:
-        subreddit = reddit.subreddit("Relationships")
         for submission in subreddit.stream.submissions():
             title = submission.title.lower()
             search = re.search("(i|my|i'm|i am|me) +\(([1-9][0-9][mf])\)", title) # Need to modify the RE to be () or []
@@ -297,7 +302,6 @@ def new_collect(subreddit, limit=None):
                 target.save_comments_to_db()
                 target.save_posts_to_db()
     else:
-        subreddit = reddit.subreddit("Relationships")
         count = 0
         for submission in subreddit.stream.submissions():
             title = submission.title.lower()
@@ -315,15 +319,32 @@ def prod_run():
     r_relationships = reddit.subreddit("Relationships")
     r_dating = reddit.subreddit("dating")
     r_relationship_advice = reddit.subreddit("relationship_advice")
-    #new_collect(subreddit,limit=None)
-    r_relationships_thread = Thread(target=new_collect)
-    r_dating_thread = Thread(target=new_collect)
-    # add others
+    r_relationships_thread = Thread(target=new_collect, args=(r_relationships,))
+    r_dating_thread = Thread(target=new_collect, args=(r_dating,))
+    r_relationship_advice_thread = Thread(target=new_collect, args=(r_relationship_advice,))
     r_relationships_thread.daemon = True
     r_dating_thread.daemon = True
+    r_relationship_advice_thread.daemon = True
+    r_relationships_thread.start()
     r_dating_thread.start()
-    r_dating_thread.join()
-    # INCOMPLETE PLEASE FINISH
+    r_relationship_advice_thread.start()
+    exit_flag = False
+    while(exit_flag is False):
+        print("number of active threads: " + str(active_thread_count()))
+        db = opendb()
+        cur = db.cursor()
+        cur.execute("SELECT COUNT(*) FROM userdata")
+        count = cur.fetchone()
+        print("number of users collected: " + str(count[0]))
+        cur.execute("SELECT COUNT(*) FROM userpostdata")
+        count = cur.fetchone()
+        print("number of posts collected: " + str(count[0]))
+        cur.execute("SELECT COUNT(*) FROM usercommentdata")
+        count = cur.fetchone()
+        print("number of comments collected: " + str(count[0]))
+        if input("Would you like to continue and refresh stats? Y/N") == "N": exit_flag = True
+
+
 
 # TESTS
 
@@ -449,7 +470,7 @@ def test4_1():
 # used to test for now
 
 if __name__ == "__main__":
-  pass
+  test4_1()
 
 
 # CAN ONLY BE RUN IN PYTHON 3.10+
