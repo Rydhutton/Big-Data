@@ -26,15 +26,24 @@ SQL_SERVER_IPV4 = "localhost"
 class User():
 
     username: str
-    gender = age = agestamp = location = dob = None
+    gender: str
+    age: int
+    gender, age, agestamp, location, dob = None
 
     def __init__(self, username, age_gender=None, unix_time=None):
         self.username = username
-        if age_gender is not None: 
+        if age_gender: 
             self.format_age_gender(age_gender)
-            if unix_time is not None: 
+            if unix_time: 
                 self.agestamp = unix_utc_toString(unix_time)
                 self.initial_save()
+
+    def __bool__(self):
+        r = self.get_redditor()
+        try:
+            _ = r.comment_karma
+            return True
+        except:return False
 
     def get_redditor(self):
         return login().redditor(self.username)
@@ -57,13 +66,13 @@ class User():
         cur = opendb().cursor()
         cur.execute("SELECT gender,age,agestamp FROM userdata WHERE username=%s",self.username)
         val = cur.fetchone()
-        if val is not None:
+        if val:
             self.gender = val
         val = cur.fetchone()
-        if val is not None:
+        if val:
             self.age = val
         val = cur.fetchone()
-        if val is not None:
+        if val:
             self.agestamp = val
 
     def save_comments_to_db(self):
@@ -119,14 +128,14 @@ class User():
         def search(query, target):
             cur.execute(query, (target,))
             d = cur.fetchone()
-            if d is not None:
+            if d:
                 for i in d:
                     if i == target:
                         return True
             else: return False
-        if username is not None: booleans.append(search("SELECT username FROM userdata WHERE username=%s", username))
-        if cid is not None: booleans.append(search("SELECT cid FROM usercommentdata WHERE cid=%s", cid))
-        if pid is not None: booleans.append(search("SELECT pid FROM userpostdata WHERE pid=%s", pid))
+        if username: booleans.append(search("SELECT username FROM userdata WHERE username=%s", username))
+        if cid: booleans.append(search("SELECT cid FROM usercommentdata WHERE cid=%s", cid))
+        if pid: booleans.append(search("SELECT pid FROM userpostdata WHERE pid=%s", pid))
         if len(booleans) > 1: return booleans
         else: return booleans[0]
 
@@ -175,7 +184,15 @@ def opendb():
 
 def opendbAdmin(admin_password=None):
     # opens the SQL server as an administrator
-    if admin_password is None:
+    if admin_password:
+        db = mysql.connector.connect(
+        host=SQL_SERVER_IPV4,
+        user="Admin",
+        password=admin_password,
+        database="testdata",
+        auth_plugin='mysql_native_password'
+        )
+    else:
         pw = input("Admin password:")
         db = mysql.connector.connect(
             host=SQL_SERVER_IPV4,
@@ -183,14 +200,6 @@ def opendbAdmin(admin_password=None):
             password=pw,
             database="testdata",
             auth_plugin='mysql_native_password'
-        )
-    else:
-        db = mysql.connector.connect(
-        host=SQL_SERVER_IPV4,
-        user="Admin",
-        password=admin_password,
-        database="testdata",
-        auth_plugin='mysql_native_password'
         )
     return db
 
@@ -334,7 +343,7 @@ def prod_run():
 
 
 if __name__ == "__main__":
-  cleandb()
+  pass
 
 
 # CAN ONLY BE RUN IN PYTHON 3.10+
