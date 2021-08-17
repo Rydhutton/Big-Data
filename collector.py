@@ -341,9 +341,8 @@ def prod_run():
 
 # ******************** MAIN ********************
 
-
 if __name__ == "__main__":
-  pass
+  prod_run()
 
 
 # CAN ONLY BE RUN IN PYTHON 3.10+
