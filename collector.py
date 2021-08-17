@@ -19,7 +19,7 @@ from praw.reddit import Redditor
 # One user named Ryan with insertion priviledges
 # And another user named Admin with DBA permissions
 
-SQL_SERVER_IPV4 = "localhost"
+SQL_SERVER_IPV4 = "192.168.1.101"
 
 # *************** OBJECT CLASSES ***************
 

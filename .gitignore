@@ -1,2 +1,6 @@
 praw.ini
 concept.py
+__pycache__/
+templates/
+*.ps1
+webserver.py
