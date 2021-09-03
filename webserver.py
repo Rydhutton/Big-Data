@@ -1,6 +1,6 @@
 from flask import Flask, render_template, redirect, request, abort
 from flask.helpers import url_for
-from collector import opendb
+from db import opendb
 
 app = Flask(__name__)
 
@@ -18,8 +18,7 @@ def search_username(username):
     cur = db.cursor()
     cur.execute("SELECT username FROM userdata WHERE username=%s",(username,))
     if cur.fetchone() is None:
-        return redirect(url_for('404'))
-    # need to fetch data from tables and return to jinja
+        return redirect(url_for('notfound'))
     cur.execute("SELECT * FROM userdata WHERE username=%s",(username,))
     udata = cur.fetchall()
     cur.execute("SELECT * FROM userpostdata WHERE username=%s",(username,))
