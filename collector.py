@@ -20,6 +20,7 @@ from praw.reddit import Redditor
 # One user named Ryan with insertion priviledges
 # And another user named Admin with DBA permissions
 
+
 def cleandb():
     # Use to delete any accounts in the database which have been deleted or suspended from reddit
     pw = input("Admin password: ")
@@ -38,36 +39,6 @@ def updatedb():
         user = User(username=line[0])
         user.save_comments_to_db()
         user.save_posts_to_db()
-
-def sql_exec_userdata(cursor, user):
-    try:
-        sql = ("INSERT INTO userdata "
-                "(username, gender, age, agestamp) "
-                "VALUES (%s, %s, %s, %s)")
-        val = (user.username, user.gender, user.age, user.agestamp)
-        cursor.execute(sql, val)
-        return True
-    except: return False
-
-def sql_exec_commentdata(cursor, comment):
-    try:
-        sql = ("INSERT INTO usercommentdata "
-                "(username, cid, comment, date) "
-                "VALUES (%s, %s, %s, %s)")
-        val = (comment.author.name, comment.id, comment.body, unix_utc_toString(comment.created_utc))
-        cursor.execute(sql, val)
-        return True
-    except: return False
-
-def sql_exec_postdata(cursor, post):
-    try:
-        sql = ("INSERT INTO userpostdata "
-                "(username, pid, title, selftext, date) "
-                "VALUES (%s, %s, %s, %s, %s)")
-        val = (post.author.name, post.id, post.title, post.selftext, unix_utc_toString(post.created_utc))
-        cursor.execute(sql, val)
-        return True
-    except: return False
 
 
 #********************** COLLECTOR FUNCTIONS ***********************

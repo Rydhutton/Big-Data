@@ -1,4 +1,5 @@
 import mysql.connector
+from collector import unix_utc_toString
 
 SQL_SERVER_IPV4 = "localhost"
 
@@ -84,3 +85,33 @@ def importusers():
     cur.execute("SELECT * FROM userdata")
     dump = cur.fetchall()
     return dump
+
+def sql_exec_userdata(cursor, user):
+    try:
+        sql = ("INSERT INTO userdata "
+                "(username, gender, age, agestamp) "
+                "VALUES (%s, %s, %s, %s)")
+        val = (user.username, user.gender, user.age, user.agestamp)
+        cursor.execute(sql, val)
+        return True
+    except: return False
+
+def sql_exec_commentdata(cursor, comment):
+    try:
+        sql = ("INSERT INTO usercommentdata "
+                "(username, cid, comment, date) "
+                "VALUES (%s, %s, %s, %s)")
+        val = (comment.author.name, comment.id, comment.body, unix_utc_toString(comment.created_utc))
+        cursor.execute(sql, val)
+        return True
+    except: return False
+
+def sql_exec_postdata(cursor, post):
+    try:
+        sql = ("INSERT INTO userpostdata "
+                "(username, pid, title, selftext, date) "
+                "VALUES (%s, %s, %s, %s, %s)")
+        val = (post.author.name, post.id, post.title, post.selftext, unix_utc_toString(post.created_utc))
+        cursor.execute(sql, val)
+        return True
+    except: return False
