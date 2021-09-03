@@ -20,6 +20,7 @@ from praw.reddit import Redditor
 # One user named Ryan with insertion priviledges
 # And another user named Admin with DBA permissions
 
+
 def cleandb():
     # Use to delete any accounts in the database which have been deleted or suspended from reddit
     pw = input("Admin password: ")
